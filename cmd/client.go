@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"kk/phpipam"
 
+	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
@@ -56,15 +57,35 @@ func loginform() bool {
 	return true
 }
 
+// walksectiontree creates a tree from every section, and then every subnet
+// inside every section
 func walksectiontree(target *tview.TreeNode, path string) {
 	sections := getsections()
 	for _, sect := range sections.Data {
 		node := tview.NewTreeNode(sect.Name).
 			SetReference(path)
+		fmt.Println(node.GetReference())
 		target.AddChild(node)
+		subnets := subnets_in_section(sect.ID)
+		for _, sbnt := range subnets.Data {
+			leaf := tview.NewTreeNode(sbnt.Subnet).
+				//SetReference(node.GetReference().(string) + "/" + sect.Name + "/" + sbnt.Subnet)
+				SetReference("/" + sect.Name)
+			fmt.Println(leaf.GetReference())
+			node.AddChild(leaf)
+		}
 	}
 }
 
+func subnets_in_section(id string) phpipam.SectionsSubnets {
+	subnets, err := c.GetSectionsSubnets(id)
+	if err != nil {
+		fmt.Println(err)
+		return subnets
+	}
+	//fmt.Println(subnets)
+	return subnets
+}
 func searchform() {
 	kk := tview.NewApplication()
 	search := tview.NewInputField().SetLabel("search ...")
@@ -74,7 +95,7 @@ func searchform() {
 	text.SetBorder(true).SetTitle("results")
 
 	root := "."
-	rootnode := tview.NewTreeNode(root)
+	rootnode := tview.NewTreeNode(root).SetColor(tcell.ColorRed)
 	tree := tview.NewTreeView().
 		SetRoot(rootnode).
 		SetCurrentNode(rootnode)
@@ -98,6 +119,7 @@ func searchform() {
 
 }
 
+// getsections retrieves all sections to which the user has access in phpipam
 func getsections() phpipam.Sections {
 	sections, err := c.GetSections()
 	if err != nil {
