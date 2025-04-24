@@ -20,8 +20,11 @@ func main() {
 func loginform() bool {
 	login := tview.NewApplication()
 
+	ipamhost := tview.NewInputField().SetLabel("phpipam instance url: ")
+	app := tview.NewInputField().SetLabel("api app name: ")
 	user := tview.NewInputField().SetLabel("user name: ")
 	pwd := tview.NewInputField().SetLabel("password: ").SetMaskCharacter(' ')
+	nocertval := tview.NewCheckbox().SetLabel("disable certificate validation")
 
 	tvdata := tview.NewTextView().
 		SetDynamicColors(true).
@@ -30,11 +33,14 @@ func loginform() bool {
 	tvdata.SetBorder(true).SetTitle("data")
 
 	form := tview.NewForm().
+		AddFormItem(ipamhost).
+		AddFormItem(app).
 		AddFormItem(user).
 		AddFormItem(pwd).
+		AddFormItem(nocertval).
 		AddButton("enter", func() {
 			var err error
-			c, err = connectipam(user.GetText(), pwd.GetText())
+			c, err = connectipam(user.GetText(), pwd.GetText(), ipamhost.GetText(), app.GetText(), nocertval.IsChecked())
 			if err != nil {
 				refreshdata(tvdata, err.Error())
 				user.SetText("")
@@ -135,13 +141,13 @@ func refreshdata(data *tview.TextView, info string) {
 
 }
 
-func connectipam(user, passwd string) (client *phpipam.Client, err error) {
+func connectipam(user, passwd, url, application string, nocertval bool) (client *phpipam.Client, err error) {
 	config := phpipam.Config{
-		Hostname:      "http://ipam.example.org/phpipam",
-		Application:   "rackgo",
+		Hostname:      url,
+		Application:   application,
 		Username:      user,
 		Password:      passwd,
-		SSLSkipVerify: false,
+		SSLSkipVerify: nocertval,
 	}
 	client, err = config.NewClient()
 	if err != nil {

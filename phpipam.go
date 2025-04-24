@@ -4,7 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 )
@@ -70,9 +70,9 @@ func (c *Config) NewLogin() (*Login, error) {
 	req.SetBasicAuth(c.Username, c.Password)
 	resp, err := client.Do(req)
 	if err != nil {
-		return loginData, err
+		return nil, err
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return loginData, err
 	}
@@ -80,12 +80,11 @@ func (c *Config) NewLogin() (*Login, error) {
 	if err != nil {
 		return loginData, err
 	}
-	switch loginData.Code {
-	case 200:
+	switch {
+	case loginData.Code >= 200 && loginData.Code < 300:
 		return loginData, nil
-	case 500:
+	case loginData.Code >= 400 && loginData.Code < 599:
 		return nil, errors.New(loginData.Message)
-
 	}
 	return nil, err
 }
@@ -106,7 +105,7 @@ func (c *Client) Do(req *http.Request) ([]byte, error) {
 	if err != nil {
 		return body, err
 	}
-	body, err = ioutil.ReadAll(resp.Body)
+	body, err = io.ReadAll(resp.Body)
 	if err != nil {
 		return body, err
 	}
